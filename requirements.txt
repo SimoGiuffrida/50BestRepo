@@ -1,0 +1,8 @@
+gtrending==0.4.0
+httpx==0.27.0
+langchain==0.2.16
+langchain-openai==0.1.25
+resend==2.4.0
+python-dotenv==1.0.1
+pytest==8.3.2
+pytest-asyncio==0.23.8
