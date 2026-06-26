@@ -12,7 +12,7 @@ NUM_REPOS = 25
 
 
 def fetch_trending_repos() -> list[dict]:
-    repos = fetch_repos(language="", spoken_language_code="en", since=TRENDING_PERIOD)
+    repos = fetch_repos(language="", since=TRENDING_PERIOD)
     result = []
     for repo in repos[:NUM_REPOS]:
         result.append({
