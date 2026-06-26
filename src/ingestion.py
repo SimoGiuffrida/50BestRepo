@@ -22,3 +22,23 @@ def fetch_trending_repos() -> list[dict]:
             "stars": repo.stars,
         })
     return result
+
+
+async def _fetch_readme(client: httpx.AsyncClient, repo: dict) -> dict:
+    owner, name = repo["name"].split("/")
+    url = f"https://raw.githubusercontent.com/{owner}/{name}/main/README.md"
+    response = await client.get(url)
+    if response.status_code == 200:
+        readme_raw = response.text
+    else:
+        # try master branch
+        url = f"https://raw.githubusercontent.com/{owner}/{name}/master/README.md"
+        response = await client.get(url)
+        readme_raw = response.text if response.status_code == 200 else ""
+    return {**repo, "readme_raw": readme_raw}
+
+
+async def download_readmes(repos: list[dict]) -> list[dict]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        tasks = [_fetch_readme(client, repo) for repo in repos]
+        return await asyncio.gather(*tasks)

@@ -30,3 +30,48 @@ def test_fetch_trending_repos_handles_none_description():
         repos = fetch_trending_repos()
 
     assert repos[0]["description"] == ""
+
+import pytest
+from unittest.mock import AsyncMock, patch, MagicMock
+from src.ingestion import download_readmes
+
+@pytest.mark.asyncio
+async def test_download_readmes_returns_text_for_each_repo():
+    repos = [
+        {"name": "user/repo1", "url": "https://github.com/user/repo1", "description": "desc", "stars": 10},
+        {"name": "user/repo2", "url": "https://github.com/user/repo2", "description": "desc", "stars": 20},
+    ]
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.text = "# Hello README"
+
+    with patch("src.ingestion.httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=mock_response)
+        mock_client_class.return_value = mock_client
+
+        result = await download_readmes(repos)
+
+    assert len(result) == 2
+    assert result[0]["readme_raw"] == "# Hello README"
+
+@pytest.mark.asyncio
+async def test_download_readmes_handles_404():
+    repos = [{"name": "user/repo", "url": "https://github.com/user/repo", "description": "d", "stars": 5}]
+
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+
+    with patch("src.ingestion.httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=mock_response)
+        mock_client_class.return_value = mock_client
+
+        result = await download_readmes(repos)
+
+    assert result[0]["readme_raw"] == ""
