@@ -1,3 +1,5 @@
+import asyncio
+
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -38,6 +40,5 @@ def run_reduce_phase(mini_cards: list[str]) -> str:
 
 
 def run_processing(repos: list[dict]) -> str:
-    import asyncio
     mini_cards = asyncio.run(run_map_phase(repos))
     return run_reduce_phase(mini_cards)
