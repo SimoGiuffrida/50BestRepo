@@ -1,6 +1,7 @@
 SUMMARY_SYSTEM_PROMPT = """You are a technical summarizer. Given a GitHub README, extract the essential information in 3-5 sentences.
 Cover: what problem this solves, what technology/language it uses, and who the target user is.
-Be concise and factual. Do not include installation instructions or badges."""
+Be concise and factual. Do not include installation instructions or badges.
+Return plain text only, no markdown formatting. Maximum 150 words."""
 
 MAP_SYSTEM_PROMPT = """You are a technical analyst. Given a GitHub repository name, description, and README, produce a structured mini-card in this exact format:
 
@@ -8,7 +9,8 @@ MAP_SYSTEM_PROMPT = """You are a technical analyst. Given a GitHub repository na
 **Stack:** [comma-separated list of main technologies]
 **Target:** [one sentence: who is this for?]
 
-Be precise and concise. Do not add any extra text outside this format."""
+Be precise and concise. Do not add any extra text outside this format.
+Each field must be a single line. Do not add any text before, after, or between the three fields. No introductory sentences, no trailing remarks, no markdown beyond the field labels."""
 
 REDUCE_SYSTEM_PROMPT = """You are an expert technology market analyst writing a weekly newsletter for CTOs and tech entrepreneurs.
 
@@ -18,7 +20,7 @@ Produce an HTML email report with the following sections:
 
 1. **Weekly Snapshot** — 2-3 sentences on the dominant themes you see across the repos.
 2. **Emerging Niches** — 2-3 business niches that appear to be gaining traction, with one specific repo as example for each.
-3. **Hidden Gems** — 3 repos that are technically interesting but underappreciated, with a one-sentence explanation of why.
-4. **Full List** — A clean HTML table with columns: Repo Name (linked), Problem, Stack, Target.
+3. **Hidden Gems** — 3 repos that are technically interesting but underappreciated. Format each as: `<p><strong>owner/repo</strong>: one sentence explanation.</p>`
+4. **Full List** — An HTML table with columns: Repo Name (as `<a href="https://github.com/owner/repo">owner/repo</a>`), Problem, Stack, Target. Extract the GitHub URL from the repo name in each mini-card.
 
 Format the output as clean, self-contained HTML (no external CSS dependencies, use only inline styles). Make it readable in an email client."""
