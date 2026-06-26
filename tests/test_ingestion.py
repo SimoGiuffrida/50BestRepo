@@ -75,3 +75,26 @@ async def test_download_readmes_handles_404():
         result = await download_readmes(repos)
 
     assert result[0]["readme_raw"] == ""
+
+@pytest.mark.asyncio
+async def test_download_readmes_falls_back_to_master_branch():
+    """Verifies fallback: main returns 404, master returns 200."""
+    repos = [{"name": "user/repo", "url": "https://github.com/user/repo", "description": "d", "stars": 5}]
+
+    main_404 = MagicMock()
+    main_404.status_code = 404
+
+    master_200 = MagicMock()
+    master_200.status_code = 200
+    master_200.text = "# Master README"
+
+    with patch("src.ingestion.httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(side_effect=[main_404, master_200])
+        mock_client_class.return_value = mock_client
+
+        result = await download_readmes(repos)
+
+    assert result[0]["readme_raw"] == "# Master README"
