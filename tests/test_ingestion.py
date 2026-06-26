@@ -98,3 +98,29 @@ async def test_download_readmes_falls_back_to_master_branch():
         result = await download_readmes(repos)
 
     assert result[0]["readme_raw"] == "# Master README"
+
+from src.ingestion import preprocess_readmes
+
+def test_short_readme_kept_as_is():
+    repos = [{"name": "u/r", "url": "", "description": "", "stars": 0, "readme_raw": "short text"}]
+    with patch("src.ingestion.ChatOpenAI"):
+        result = preprocess_readmes(repos)
+    assert result[0]["readme_text"] == "short text"
+
+def test_long_readme_is_summarized():
+    long_text = "x" * 3001
+    repos = [{"name": "u/r", "url": "", "description": "", "stars": 0, "readme_raw": long_text}]
+
+    mock_llm = MagicMock()
+    mock_llm.invoke = MagicMock(return_value=MagicMock(content="summarized content"))
+
+    with patch("src.ingestion.ChatOpenAI", return_value=mock_llm):
+        result = preprocess_readmes(repos)
+
+    assert result[0]["readme_text"] == "summarized content"
+
+def test_empty_readme_kept_as_is():
+    repos = [{"name": "u/r", "url": "", "description": "", "stars": 0, "readme_raw": ""}]
+    with patch("src.ingestion.ChatOpenAI"):
+        result = preprocess_readmes(repos)
+    assert result[0]["readme_text"] == ""

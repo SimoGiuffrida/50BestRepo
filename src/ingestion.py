@@ -42,3 +42,27 @@ async def download_readmes(repos: list[dict]) -> list[dict]:
     async with httpx.AsyncClient(timeout=10.0) as client:
         tasks = [_fetch_readme(client, repo) for repo in repos]
         return await asyncio.gather(*tasks)
+
+
+def preprocess_readmes(repos: list[dict]) -> list[dict]:
+    llm = ChatOpenAI(model=PRESUMMARY_MODEL, temperature=0)
+    result = []
+    for repo in repos:
+        raw = repo["readme_raw"]
+        if len(raw) > README_THRESHOLD:
+            messages = [
+                SystemMessage(content=SUMMARY_SYSTEM_PROMPT),
+                HumanMessage(content=raw),
+            ]
+            response = llm.invoke(messages)
+            readme_text = response.content
+        else:
+            readme_text = raw
+        result.append({**repo, "readme_text": readme_text})
+    return result
+
+
+def run_ingestion() -> list[dict]:
+    repos = fetch_trending_repos()
+    repos_with_readmes = asyncio.run(download_readmes(repos))
+    return preprocess_readmes(repos_with_readmes)
