@@ -1,15 +1,23 @@
 from unittest.mock import patch, MagicMock
 from src.ingestion import fetch_trending_repos
 
-def test_fetch_trending_repos_returns_list_of_dicts():
-    mock_repo = MagicMock()
-    mock_repo.name = "awesome-tool"
-    mock_repo.full_name = "user/awesome-tool"
-    mock_repo.url = "https://github.com/user/awesome-tool"
-    mock_repo.description = "A great tool"
-    mock_repo.stars = 1200
+def _make_github_api_response(items: list[dict]) -> MagicMock:
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"items": items}
+    mock_response.raise_for_status = MagicMock()
+    return mock_response
 
-    with patch("src.ingestion.fetch_repos", return_value=[mock_repo] * 25):
+def test_fetch_trending_repos_returns_list_of_dicts():
+    fake_items = [
+        {
+            "full_name": "user/awesome-tool",
+            "html_url": "https://github.com/user/awesome-tool",
+            "description": "A great tool",
+            "stargazers_count": 1200,
+        }
+    ] * 25
+
+    with patch("src.ingestion.httpx.get", return_value=_make_github_api_response(fake_items)):
         repos = fetch_trending_repos()
 
     assert len(repos) == 25
@@ -19,14 +27,16 @@ def test_fetch_trending_repos_returns_list_of_dicts():
     assert repos[0]["stars"] == 1200
 
 def test_fetch_trending_repos_handles_none_description():
-    mock_repo = MagicMock()
-    mock_repo.name = "tool"
-    mock_repo.full_name = "user/tool"
-    mock_repo.url = "https://github.com/user/tool"
-    mock_repo.description = None
-    mock_repo.stars = 100
+    fake_items = [
+        {
+            "full_name": "user/tool",
+            "html_url": "https://github.com/user/tool",
+            "description": None,
+            "stargazers_count": 100,
+        }
+    ]
 
-    with patch("src.ingestion.fetch_repos", return_value=[mock_repo]):
+    with patch("src.ingestion.httpx.get", return_value=_make_github_api_response(fake_items)):
         repos = fetch_trending_repos()
 
     assert repos[0]["description"] == ""

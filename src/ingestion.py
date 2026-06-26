@@ -1,27 +1,41 @@
 import asyncio
+import datetime
+import os
 import httpx
-from gtrending import fetch_repos
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from prompts import SUMMARY_SYSTEM_PROMPT
 
 README_THRESHOLD = 3000
 PRESUMMARY_MODEL = "gpt-4o-mini"
-TRENDING_PERIOD = "weekly"
 NUM_REPOS = 25
+DAYS_AGO = 7
 
 
 def fetch_trending_repos() -> list[dict]:
-    repos = fetch_repos(language="", since=TRENDING_PERIOD)
-    result = []
-    for repo in repos[:NUM_REPOS]:
-        result.append({
-            "name": repo.full_name,
-            "url": repo.url,
-            "description": repo.description or "",
-            "stars": repo.stars,
-        })
-    return result
+    date_start = (datetime.date.today() - datetime.timedelta(days=DAYS_AGO)).strftime("%Y-%m-%d")
+    url = (
+        f"https://api.github.com/search/repositories"
+        f"?q=created:>{date_start}&sort=stars&order=desc&per_page={NUM_REPOS}"
+    )
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    response = httpx.get(url, headers=headers, timeout=15.0)
+    response.raise_for_status()
+    items = response.json().get("items", [])
+
+    return [
+        {
+            "name": repo["full_name"],
+            "url": repo["html_url"],
+            "description": repo.get("description") or "",
+            "stars": repo["stargazers_count"],
+        }
+        for repo in items
+    ]
 
 
 async def _fetch_readme(client: httpx.AsyncClient, repo: dict) -> dict:
