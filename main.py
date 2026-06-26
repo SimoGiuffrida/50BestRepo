@@ -12,15 +12,27 @@ def main():
     load_dotenv()
 
     log.info("Step 1/3: Fetching trending repos and downloading READMEs...")
-    repos = run_ingestion()
+    try:
+        repos = run_ingestion()
+    except Exception as e:
+        log.error(f"Ingestion failed: {e}", exc_info=True)
+        raise
     log.info(f"  → {len(repos)} repos ingested.")
 
     log.info("Step 2/3: Running LLM map-reduce pipeline...")
-    html_report = run_processing(repos)
+    try:
+        html_report = run_processing(repos)
+    except Exception as e:
+        log.error(f"Processing failed: {e}", exc_info=True)
+        raise
     log.info("  → Report generated.")
 
     log.info("Step 3/3: Sending newsletter...")
-    result = send_newsletter(html_report)
+    try:
+        result = send_newsletter(html_report)
+    except Exception as e:
+        log.error(f"Email delivery failed: {e}", exc_info=True)
+        raise
     log.info(f"  → Email sent. Result: {result}")
 
 

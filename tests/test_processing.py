@@ -1,6 +1,6 @@
 from unittest.mock import patch, MagicMock, AsyncMock
 import pytest
-from src.processing import run_map_phase
+from src.processing import run_map_phase, run_reduce_phase
 
 @pytest.mark.asyncio
 async def test_run_map_phase_returns_list_of_strings():
@@ -24,7 +24,8 @@ async def test_run_map_phase_returns_list_of_strings():
     assert isinstance(result[0], str)
 
 @pytest.mark.asyncio
-async def test_run_map_phase_skips_failed_repos():
+async def test_run_map_phase_returns_empty_on_batch_failure():
+    """If abatch raises an exception, the entire map phase returns [] gracefully."""
     repos = [
         {"name": "u/r1", "url": "", "description": "", "stars": 0, "readme_text": "text"},
     ]
@@ -39,9 +40,11 @@ async def test_run_map_phase_skips_failed_repos():
 
     assert result == []
 
-from src.processing import run_reduce_phase
-
 def test_run_reduce_phase_returns_html_string():
+    repos = [
+        {"name": "u/r1", "url": "https://github.com/u/r1", "description": "desc1", "stars": 10, "readme_text": "text1"},
+        {"name": "u/r2", "url": "https://github.com/u/r2", "description": "desc2", "stars": 20, "readme_text": "text2"},
+    ]
     mini_cards = [
         "**Problem:** X\n**Stack:** Python\n**Target:** Devs",
         "**Problem:** Y\n**Stack:** Rust\n**Target:** SREs",
@@ -51,7 +54,7 @@ def test_run_reduce_phase_returns_html_string():
     mock_llm.invoke = MagicMock(return_value=MagicMock(content="<html><body>Report</body></html>"))
 
     with patch("src.processing.ChatOpenAI", return_value=mock_llm):
-        result = run_reduce_phase(mini_cards)
+        result = run_reduce_phase(repos, mini_cards)
 
     assert isinstance(result, str)
     assert "<html>" in result
@@ -59,7 +62,7 @@ def test_run_reduce_phase_returns_html_string():
 def test_run_reduce_phase_raises_on_empty_cards():
     with patch("src.processing.ChatOpenAI"):
         try:
-            run_reduce_phase([])
+            run_reduce_phase([], [])
             assert False, "Should have raised ValueError"
         except ValueError as e:
             assert "no mini-cards" in str(e).lower()

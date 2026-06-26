@@ -24,12 +24,13 @@ async def run_map_phase(repos: list[dict]) -> list[str]:
         return []
 
 
-def run_reduce_phase(mini_cards: list[str]) -> str:
+def run_reduce_phase(repos: list[dict], mini_cards: list[str]) -> str:
     if not mini_cards:
         raise ValueError("Cannot run reduce phase: no mini-cards received from map phase.")
     llm = ChatOpenAI(model=REDUCE_MODEL, temperature=0.3)
     combined = "\n\n---\n\n".join(
-        f"[{i+1}] {card}" for i, card in enumerate(mini_cards)
+        f"[{i+1}] URL: {repos[i]['url']}\n{card}" if i < len(repos) else f"[{i+1}] {card}"
+        for i, card in enumerate(mini_cards)
     )
     messages = [
         SystemMessage(content=REDUCE_SYSTEM_PROMPT),
@@ -41,4 +42,4 @@ def run_reduce_phase(mini_cards: list[str]) -> str:
 
 def run_processing(repos: list[dict]) -> str:
     mini_cards = asyncio.run(run_map_phase(repos))
-    return run_reduce_phase(mini_cards)
+    return run_reduce_phase(repos, mini_cards)
